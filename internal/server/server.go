@@ -15,7 +15,7 @@ import (
 
 var (
 	// addr = flag.String("addr",":",os.Getenv("PORT"), "")
-	addr = flag.String("addr:", os.Getenv("Port"), "")
+	addr = flag.String("addr", ":"+ os.Getenv("Port"), "")
 	cert = flag.String("cert", "", "")
 	key  = flag.String("key", "", "")
 )
