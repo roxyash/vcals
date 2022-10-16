@@ -1,6 +1,9 @@
 package main
 
+import "log"
 
 func main() {
-    fmt.Println("Hello World")
+	if err := server.Run(); err != nil {
+		log.Fatal(err.Error())
+	}
 }
