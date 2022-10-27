@@ -45,7 +45,7 @@ func (p *Peers) AddTrack(t *webrtc.TrackRemote) *webrtc.TrackLocalStaticRTP {
 
 	trackLocal, err := webrtc.NewTrackLocalStaticRTP(t.Codec().RTPCodecCapability, t.ID(), t.StreamID())
 	if err != nil {
-		logrus.Infof(err.Error())
+		logrus.Error(err.Error())
 	}
 
 	p.TrackLocals[t.ID()] = trackLocal
@@ -63,7 +63,53 @@ func (p *Peers) RemoveTrack(t *webrtc.TrackLocalStaticRTP) {
 }
 
 func (p *Peers) SignalPeerConnection() {
+	p.ListLock.Lock()
+	defer func() {
+		p.ListLock.Unlock()
+		p.DispatchKeyFrame()
+	}()
 
+	attemptSync := func() (tryAgain bool) {
+		for i := range p.Connections {
+			if p.Connections[i].PeerConnection.ConnectionState() == webrtc.PeerConnectionStateClosed {
+				p.Connections = append(p.Connections[:i], p.Connections[i+1:]...)
+				logrus.Infof("a %v", p.Connections)
+				return true
+			}
+		}
+
+		existingSenders := map[string]bool{}
+		for i, sender := range p.Connections[i].PeerConnection.GetSenders() {
+			if sender.Track() == nil {
+				continue
+			}
+
+			existingSenders[senders.Track().ID()] = true
+
+			if _, ok := p.TrackLocals[sender.Track().ID()]; !ok {
+				if err := p.Connections[i].PeerConnection.RemoveTrack(Sender); err != nil {
+					return true
+				}
+			}
+
+			for _, receiver := range p.Connections[i].PeerConnection.GetReceivers() {
+				if receiver.Track() == nil {
+					continue
+				}
+
+				existingSenders[receiver.Track().ID()] = true
+			}
+
+			for trackId := range p.TrackLocals{
+				if _, ok := existingSenders[trackId]; !ok {
+					if _, err := p.Connections[i].PeerConnection.AddTrack(p.TrackLocals[trackId]); err != nil {
+						return true
+					}
+				}
+			}
+		}
+
+	}
 }
 
 func (p *Peers) DispatchKeyFrame() {
