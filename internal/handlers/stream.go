@@ -84,6 +84,7 @@ func viewerConn(c websocket.Conn, p *w.Peers) {
 				return
 			}
 			w.Write([]byte(fmt.Sprintf("%d", len(p.Connections))))
+			// 
 		}
 	}
 }
